@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Perfil Tecnológico</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans flex flex-col items-center p-4">
+
+  <div class="w-full max-w-md my-auto">
+    <!-- Encabezado -->
+    <header class="text-center mb-6">
+      <span class="text-xs uppercase tracking-widest text-cyan-400 font-bold bg-cyan-950/60 px-3 py-1 rounded-full border border-cyan-800">
+        Test de Afinidad Tech
+      </span>
+      <h1 class="text-2xl font-black mt-3 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">
+        Descubre tu Área
+      </h1>
+      <p class="text-xs text-slate-400 mt-1">Ajusta los parámetros para evaluar tu vocación</p>
+    </header>
+
+    <!-- Formulario / Sliders -->
+    <div id="form-container" class="space-y-4 bg-slate-900/80 p-5 rounded-2xl border border-slate-800 backdrop-blur shadow-xl">
+      <div>
+        <label class="flex justify-between text-xs font-semibold mb-1 text-slate-300">
+          <span>Software vs Hardware</span>
+          <span id="lbl-q1" class="text-cyan-400 font-mono">Híbrido (50/50)</span>
+        </label>
+        <input id="q1" type="range" min="0" max="100" value="50" class="w-full accent-cyan-400 h-2 bg-slate-800 rounded-lg cursor-pointer">
+        <div class="flex justify-between text-[10px] text-slate-500 mt-0.5">
+          <span>100% Código / Datos</span>
+          <span>100% Circuitos / Fierros</span>
+        </div>
+      </div>
+
+      <div>
+        <label class="flex justify-between text-xs font-semibold mb-1 text-slate-300">
+          <span>Interés en Automatización y Mecánica</span>
+          <span id="lbl-q2" class="text-cyan-400 font-mono">Medio</span>
+        </label>
+        <input id="q2" type="range" min="0" max="100" value="50" class="w-full accent-cyan-400 h-2 bg-slate-800 rounded-lg cursor-pointer">
+        <div class="flex justify-between text-[10px] text-slate-500 mt-0.5">
+          <span>Solo pantallas</span>
+          <span>Brazos robóticos / Motores</span>
+        </div>
+      </div>
+
+      <div>
+        <label class="flex justify-between text-xs font-semibold mb-1 text-slate-300">
+          <span>Interés en Redes, Servidores e IA</span>
+          <span id="lbl-q3" class="text-cyan-400 font-mono">Medio</span>
+        </label>
+        <input id="q3" type="range" min="0" max="100" value="50" class="w-full accent-cyan-400 h-2 bg-slate-800 rounded-lg cursor-pointer">
+        <div class="flex justify-between text-[10px] text-slate-500 mt-0.5">
+          <span>Poco interés</span>
+          <span>Fascinación total</span>
+        </div>
+      </div>
+
+      <div>
+        <label class="flex justify-between text-xs font-semibold mb-1 text-slate-300">
+          <span>Curiosidad por desarmar o soldar cosas</span>
+          <span id="lbl-q4" class="text-cyan-400 font-mono">Ocasional</span>
+        </label>
+        <input id="q4" type="range" min="0" max="100" value="50" class="w-full accent-cyan-400 h-2 bg-slate-800 rounded-lg cursor-pointer">
+        <div class="flex justify-between text-[10px] text-slate-500 mt-0.5">
+          <span>Cero curiosidad</span>
+          <span>Desarmo todo en casa</span>
+        </div>
+      </div>
+
+      <button id="btn-calcular" class="w-full mt-4 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-black py-3 rounded-xl transition-all shadow-lg shadow-cyan-500/20 active:scale-95 text-sm uppercase tracking-wider">
+        Calcular mi Perfil
+      </button>
+    </div>
+
+    <!-- Contenedor de Resultados (Oculto al inicio) -->
+    <div id="results-container" class="hidden mt-4 space-y-4">
+      <div class="bg-slate-900 p-5 rounded-2xl border border-cyan-800/40 text-center">
+        <h2 class="text-xs uppercase tracking-widest text-slate-400 font-bold">Tu carrera dominante es</h2>
+        <div id="carrera-top" class="text-2xl font-black text-cyan-400 mt-1">Mecatrónica</div>
+        
+        <div class="w-48 h-48 mx-auto my-3">
+          <canvas id="chartAfinidad"></canvas>
+        </div>
+
+        <div id="detalles-carrera" class="text-left text-xs space-y-2 mt-4 bg-slate-950/60 p-3 rounded-lg border border-slate-800">
+          <!-- Inyección dinámica -->
+        </div>
+
+        <button onclick="window.location.reload()" class="mt-4 text-xs text-slate-400 hover:text-slate-200 underline">
+          Volver a calcular
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const q1 = document.getElementById('q1');
+    const q2 = document.getElementById('q2');
+    const q3 = document.getElementById('q3');
+    const q4 = document.getElementById('q4');
+
+    const updateLabel = (input, lbl, texts) => {
+      input.addEventListener('input', () => {
+        const val = parseInt(input.value);
+        if (val < 35) lbl.innerText = texts[0];
+        else if (val < 65) lbl.innerText = texts[1];
+        else lbl.innerText = texts[2];
+      });
+    };
+
+    updateLabel(q1, document.getElementById('lbl-q1'), ["Enfocado a Software", "Híbrido (50/50)", "Enfocado a Hardware"]);
+    updateLabel(q2, document.getElementById('lbl-q2'), ["Bajo", "Medio", "Alto"]);
+    updateLabel(q3, document.getElementById('lbl-q3'), ["Bajo", "Medio", "Alto"]);
+    updateLabel(q4, document.getElementById('lbl-q4'), ["Cero", "Ocasional", "Experto"]);
+
+    let myChart = null;
+
+    document.getElementById('btn-calcular').addEventListener('click', () => {
+      const v1 = parseFloat(q1.value); // 0 (soft) a 100 (hard)
+      const v2 = parseFloat(q2.value); // Automatización / Mecánica
+      const v3 = parseFloat(q3.value); // Redes / IA
+      const v4 = parseFloat(q4.value); // Soldar / Desarmar
+
+      // Cálculo de puntajes ponderados
+      const scoreInformatica = Math.max(5, Math.round(((100 - v1) * 0.45) + (v3 * 0.45) + ((100 - v4) * 0.1)));
+      const scoreElectronica = Math.max(5, Math.round((v1 * 0.35) + (v4 * 0.45) + ((100 - v2) * 0.2)));
+      const scoreMecatronica = Math.max(5, Math.round((v2 * 0.45) + (v1 * 0.25) + (v4 * 0.3)));
+
+      document.getElementById('form-container').classList.add('hidden');
+      document.getElementById('results-container').classList.remove('hidden');
+
+      // Determinar ganadora
+      const scores = [
+        { carrera: 'Ingeniería en Informática', pts: scoreInformatica, color: '#38bdf8' },
+        { carrera: 'Ingeniería Electrónica', pts: scoreElectronica, color: '#f59e0b' },
+        { carrera: 'Ingeniería Mecatrónica', pts: scoreMecatronica, color: '#10b981' }
+      ];
+      scores.sort((a, b) => b.pts - a.pts);
+      const top = scores[0];
+
+      document.getElementById('carrera-top').innerText = top.carrera;
+      document.getElementById('carrera-top').style.color = top.color;
+
+      // Inyectar datos específicos de la carrera
+      const detallesDiv = document.getElementById('detalles-carrera');
+      if (top.carrera.includes('Informática')) {
+        detallesDiv.innerHTML = `
+          <p><strong class="text-cyan-400">Proyectos típicos:</strong> Inteligencia Artificial, Ciberseguridad, Desarrollo Cloud, Algoritmos.</p>
+          <p><strong class="text-cyan-400">Herramientas clave:</strong> Python, C++, Docker, Bases de datos distribuidas.</p>
+          <p class="text-slate-400 italic">"Modelas soluciones lógicas y sistemas que controlan el mundo digital."</p>
+        `;
+      } else if (top.carrera.includes('Electrónica')) {
+        detallesDiv.innerHTML = `
+          <p><strong class="text-amber-400">Proyectos típicos:</strong> Sistemas embebidos, IoT, diseño de PCB, telecomunicaciones satelitales.</p>
+          <p><strong class="text-amber-400">Herramientas clave:</strong> Microcontroladores (ARM/ESP32), C, VHDL/FPGA, KiCAD.</p>
+          <p class="text-slate-400 italic">"Diseñas el hardware que permite a las computadoras interactuar con el entorno físico."</p>
+        `;
+      } else {
+        detallesDiv.innerHTML = `
+          <p><strong class="text-emerald-400">Proyectos típicos:</strong> Robótica industrial, prótesis biónicas, vehículos autónomos, control PID.</p>
+          <p><strong class="text-emerald-400">Herramientas clave:</strong> SolidWorks, Cinemática directa/inversa, C++, Controladores PLC.</p>
+          <p class="text-slate-400 italic">"La convergencia perfecta: integras estructura física, electrónica de potencia y software de control."</p>
+        `;
+      }
+
+      // Render de gráfico radar
+      const ctx = document.getElementById('chartAfinidad').getContext('2d');
+      if (myChart) myChart.destroy();
+      myChart = new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels: ['Informática', 'Electrónica', 'Mecatrónica'],
+          datasets: [{
+            data: [scoreInformatica, scoreElectronica, scoreMecatronica],
+            backgroundColor: 'rgba(56, 189, 248, 0.25)',
+            borderColor: top.color,
+            borderWidth: 2,
+            pointBackgroundColor: top.color,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            r: {
+              angleLines: { color: '#334155' },
+              grid: { color: '#1e293b' },
+              pointLabels: { color: '#cbd5e1', font: { size: 10, weight: 'bold' } },
+              ticks: { display: false, min: 0, max: 100 }
+            }
+          }
+        }
+      });
+
+      // Notificar al dashboard central (vía BroadcastChannel para funcionar sin backend)
+      try {
+        const channel = new BroadcastChannel('feria_tech_channel');
+        channel.postMessage({
+          carrera: top.carrera,
+          scores: { inf: scoreInformatica, elec: scoreElectronica, meca: scoreMecatronica }
+        });
+      } catch (e) {
+        console.log("Modo standalone");
+      }
+    });
+  </script>
+</body>
+</html>

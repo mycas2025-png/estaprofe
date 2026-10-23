@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Centro de Monitoreo Vocacional - Feria Tecnológica</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen p-8 flex flex-col justify-between">
+
+  <!-- Header -->
+  <header class="flex justify-between items-center border-b border-slate-800 pb-4">
+    <div>
+      <div class="flex items-center gap-2">
+        <span class="inline-block w-3 h-3 bg-emerald-500 rounded-full animate-ping"></span>
+        <h1 class="text-2xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-indigo-400 to-purple-400 uppercase">
+          Métricas de Afinidad Vocacional
+        </h1>
+      </div>
+      <p class="text-xs text-slate-400 font-mono mt-1">Transmisión en tiempo real desde terminales móviles</p>
+    </div>
+    <div class="text-right">
+      <div class="text-xs uppercase text-slate-500 font-bold">Total Evaluados</div>
+      <div id="total-registros" class="text-4xl font-mono font-black text-cyan-400">0</div>
+    </div>
+  </header>
+
+  <!-- Grid Principal -->
+  <main class="grid grid-cols-3 gap-6 my-6 flex-grow">
+    <!-- Gráfica de Pastel (Distribución general) -->
+    <div class="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl flex flex-col items-center justify-center">
+      <h3 class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Distribución Global</h3>
+      <div class="w-full max-w-[280px] h-[280px]">
+        <canvas id="chartDonut"></canvas>
+      </div>
+    </div>
+
+    <!-- Gráfica de Barras (Tendencia) -->
+    <div class="col-span-2 bg-slate-900/60 border border-slate-800 p-5 rounded-2xl flex flex-col">
+      <h3 class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Promedio de Compatibilidad Acumulada</h3>
+      <div class="flex-grow">
+        <canvas id="chartBarras"></canvas>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer con Log de Eventos -->
+  <footer class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center justify-between font-mono text-xs text-slate-400">
+    <div class="flex items-center gap-2">
+      <span class="text-cyan-400 font-bold">[EVENT LOG]:</span>
+      <span id="log-text">Esperando escaneos de alumnos...</span>
+    </div>
+    <div class="text-[10px] text-slate-500">Escanea el QR del cartel para participar</div>
+  </footer>
+
+  <script>
+    let totalCount = 0;
+    let counts = { inf: 0, elec: 0, meca: 0 };
+    let sumScores = { inf: 0, elec: 0, meca: 0 };
+
+    // Configuración Gráfica Donut
+    const ctxDonut = document.getElementById('chartDonut').getContext('2d');
+    const chartDonut = new Chart(ctxDonut, {
+      type: 'doughnut',
+      data: {
+        labels: ['Informática', 'Electrónica', 'Mecatrónica'],
+        datasets: [{
+          data: [0, 0, 0],
+          backgroundColor: ['#38bdf8', '#f59e0b', '#10b981'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 } } } },
+        cutout: '70%'
+      }
+    });
+
+    // Configuración Gráfica Barras
+    const ctxBarras = document.getElementById('chartBarras').getContext('2d');
+    const chartBarras = new Chart(ctxBarras, {
+      type: 'bar',
+      data: {
+        labels: ['Informática', 'Electrónica', 'Mecatrónica'],
+        datasets: [{
+          label: 'Afinidad Promedio (%)',
+          data: [0, 0, 0],
+          backgroundColor: ['rgba(56, 189, 248, 0.6)', 'rgba(245, 158, 11, 0.6)', 'rgba(16, 185, 129, 0.6)'],
+          borderColor: ['#38bdf8', '#f59e0b', '#10b981'],
+          borderWidth: 1.5,
+          borderRadius: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: { min: 0, max: 100, grid: { color: '#1e293b' }, ticks: { color: '#64748b' } },
+          x: { grid: { display: false }, ticks: { color: '#cbd5e1', font: { weight: 'bold' } } }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+
+    // Escuchar eventos en vivo
+    const channel = new BroadcastChannel('feria_tech_channel');
+    channel.onmessage = (event) => {
+      const data = event.data;
+      totalCount++;
+      document.getElementById('total-registros').innerText = totalCount;
+
+      if (data.carrera.includes('Informática')) counts.inf++;
+      else if (data.carrera.includes('Electrónica')) counts.elec++;
+      else if (data.carrera.includes('Mecatrónica')) counts.meca++;
+
+      sumScores.inf += data.scores.inf;
+      sumScores.elec += data.scores.elec;
+      sumScores.meca += data.scores.meca;
+
+      // Actualizar gráficos
+      chartDonut.data.datasets[0].data = [counts.inf, counts.elec, counts.meca];
+      chartDonut.update();
+
+      chartBarras.data.datasets[0].data = [
+        Math.round(sumScores.inf / totalCount),
+        Math.round(sumScores.elec / totalCount),
+        Math.round(sumScores.meca / totalCount)
+      ];
+      chartBarras.update();
+
+      // Log visual
+      const timestamp = new Date().toLocaleTimeString();
+      document.getElementById('log-text').innerText = `${timestamp} - Nuevo perfil detectado: ${data.carrera}`;
+    };
+  </script>
+</body>
+</html>
